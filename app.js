@@ -3,7 +3,7 @@ const routes = {
   '/dashboard': { title: 'Dashboard', render: renderDashboard },
   '/saved': { title: 'Saved', render: renderSaved },
   '/digest': { title: 'Digest', render: renderPlaceholder },
-  '/settings': { title: 'Settings', render: renderPlaceholder },
+  '/settings': { title: 'Settings', render: renderSettings },
   '/proof': { title: 'Proof', render: renderPlaceholder }
 };
 
@@ -12,12 +12,10 @@ const navLinks = document.querySelectorAll('.nav-link');
 const menuToggle = document.getElementById('mobile-menu-btn');
 const navMenu = document.getElementById('nav-menu');
 
-// Modal Elements
 const jobModal = document.getElementById('job-modal');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 const modalDetails = document.getElementById('modal-details');
 
-// Local Storage Helper
 function getSavedJobIds() {
   return JSON.parse(localStorage.getItem('savedJobIds') || '[]');
 }
@@ -30,11 +28,57 @@ function toggleSaveJob(id) {
     savedIds.push(id);
   }
   localStorage.setItem('savedJobIds', JSON.stringify(savedIds));
-  // Render current view to reflect changes (e.g. changing "Save" to "Saved")
   renderPage(location.pathname);
 }
 
-// Global job state (to hold filtering)
+function getPreferences() {
+  const prefs = localStorage.getItem('jobTrackerPreferences');
+  return prefs ? JSON.parse(prefs) : null;
+}
+
+function savePreferences(prefs) {
+  localStorage.setItem('jobTrackerPreferences', JSON.stringify(prefs));
+}
+
+function calculateScore(job, prefs) {
+  if (!prefs) return 0;
+  let score = 0;
+
+  if (prefs.roleKeywords && prefs.roleKeywords.trim() !== '') {
+    const keywords = prefs.roleKeywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+    const title = job.title.toLowerCase();
+    if (keywords.some(k => title.includes(k))) score += 25;
+
+    const desc = job.description.toLowerCase();
+    if (keywords.some(k => desc.includes(k))) score += 15;
+  }
+
+  if (prefs.preferredLocations && prefs.preferredLocations.length > 0) {
+    if (prefs.preferredLocations.includes(job.location)) score += 15;
+  }
+
+  if (prefs.preferredMode && prefs.preferredMode.length > 0) {
+    if (prefs.preferredMode.includes(job.mode)) score += 10;
+  }
+
+  if (prefs.experienceLevel && job.experience === prefs.experienceLevel) {
+    score += 10;
+  }
+
+  if (prefs.skills && prefs.skills.trim() !== '') {
+    const userSkills = prefs.skills.split(',').map(s => s.trim().toLowerCase()).filter(s => s);
+    const jobSkills = job.skills.map(s => s.toLowerCase());
+    if (userSkills.some(s => jobSkills.includes(s))) score += 15;
+  }
+
+  if (job.postedDaysAgo <= 2) score += 5;
+
+  if (job.source.toLowerCase() === 'linkedin') score += 5;
+
+  return Math.min(score, 100);
+}
+
+// Global job state
 let currentJobs = [...jobData];
 
 // Render Methods
@@ -47,12 +91,142 @@ function renderPlaceholder(route) {
   `;
 }
 
+function renderSettings(route) {
+  const prefs = getPreferences() || {
+    roleKeywords: '',
+    preferredLocations: [],
+    preferredMode: [],
+    experienceLevel: '',
+    skills: '',
+    minMatchScore: 40
+  };
+
+  const isLocSel = (loc) => prefs.preferredLocations.includes(loc) ? 'selected' : '';
+  const isModeChk = (mode) => prefs.preferredMode.includes(mode) ? 'checked' : '';
+  const isExpSel = (exp) => prefs.experienceLevel === exp ? 'selected' : '';
+
+  appRoot.innerHTML = `
+    <div class="text-container">
+      <h1>${route.title}</h1>
+      <p>Set your preferences to activate intelligent matching.</p>
+      
+      <div class="card" style="margin-top: var(--space-40);">
+        <form id="preferences-form">
+          <div class="form-group">
+            <label class="form-label">Role Keywords (comma-separated)</label>
+            <input type="text" id="pref-roles" class="form-control" placeholder="e.g. React, Developer, Intern" value="${prefs.roleKeywords}">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Preferred Locations (Multi-select)</label>
+            <select id="pref-locations" class="form-control" multiple style="height: 120px;">
+              <option value="Bangalore" ${isLocSel('Bangalore')}>Bangalore</option>
+              <option value="Hyderabad" ${isLocSel('Hyderabad')}>Hyderabad</option>
+              <option value="Pune" ${isLocSel('Pune')}>Pune</option>
+              <option value="Chennai" ${isLocSel('Chennai')}>Chennai</option>
+              <option value="Mumbai" ${isLocSel('Mumbai')}>Mumbai</option>
+              <option value="Delhi NCR" ${isLocSel('Delhi NCR')}>Delhi NCR</option>
+              <option value="Remote" ${isLocSel('Remote')}>Remote</option>
+            </select>
+            <p style="font-size: 14px; margin-top: var(--space-8); color: var(--text-muted);">Hold Ctrl (Windows) or Cmd (Mac) to select multiple.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Preferred Mode</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" name="pref-mode" value="Remote" ${isModeChk('Remote')}> Remote
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" name="pref-mode" value="Hybrid" ${isModeChk('Hybrid')}> Hybrid
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" name="pref-mode" value="Onsite" ${isModeChk('Onsite')}> Onsite
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Experience Level</label>
+            <select id="pref-exp" class="form-control">
+              <option value="" ${isExpSel('')}>Any</option>
+              <option value="Fresher" ${isExpSel('Fresher')}>Fresher</option>
+              <option value="0-1" ${isExpSel('0-1')}>0-1 Years</option>
+              <option value="1-3" ${isExpSel('1-3')}>1-3 Years</option>
+              <option value="3-5" ${isExpSel('3-5')}>3-5 Years</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Your Skills (comma-separated)</label>
+            <input type="text" id="pref-skills" class="form-control" placeholder="e.g. Java, Python, React" value="${prefs.skills}">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Minimum Match Score Threshold: <span id="score-val">${prefs.minMatchScore}</span></label>
+            <input type="range" id="pref-score" min="0" max="100" value="${prefs.minMatchScore}" onchange="document.getElementById('score-val').innerText=this.value">
+          </div>
+
+          <div style="display: flex; align-items: center; gap: var(--space-16); margin-top: var(--space-24);">
+            <button type="submit" class="btn btn-primary">Save Preferences</button>
+            <span id="save-msg" style="color: var(--success); font-weight: 500; display: none;">Saved!</span>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('preferences-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const roleKeywords = document.getElementById('pref-roles').value;
+
+    const locSelect = document.getElementById('pref-locations');
+    const preferredLocations = Array.from(locSelect.selectedOptions).map(o => o.value);
+
+    const modeCheckboxes = document.querySelectorAll('input[name="pref-mode"]:checked');
+    const preferredMode = Array.from(modeCheckboxes).map(c => c.value);
+
+    const experienceLevel = document.getElementById('pref-exp').value;
+    const skills = document.getElementById('pref-skills').value;
+    const minMatchScore = parseInt(document.getElementById('pref-score').value, 10);
+
+    const newPrefs = { roleKeywords, preferredLocations, preferredMode, experienceLevel, skills, minMatchScore };
+    savePreferences(newPrefs);
+
+    if (typeof jobData !== 'undefined') {
+      jobData.forEach(job => {
+        job.matchScore = calculateScore(job, newPrefs);
+      });
+    }
+
+    const msg = document.getElementById('save-msg');
+    msg.style.display = 'inline';
+    setTimeout(() => { msg.style.display = 'none'; }, 2000);
+  });
+}
+
 function renderJobCard(job, isSaved) {
+  const prefs = getPreferences();
+  let scoreBadgeHtml = '';
+
+  if (prefs) {
+    const score = job.matchScore !== undefined ? job.matchScore : calculateScore(job, prefs);
+    let scoreClass = 'score-poor';
+    if (score >= 80) scoreClass = 'score-high';
+    else if (score >= 60) scoreClass = 'score-medium';
+    else if (score >= 40) scoreClass = 'score-low';
+
+    scoreBadgeHtml = `<div class="score-badge ${scoreClass}">Match: ${score}%</div>`;
+  }
+
   return `
     <div class="job-card">
-      <div class="job-header">
-        <h3 class="job-title">${job.title}</h3>
-        <div class="job-company">${job.company}</div>
+      <div class="job-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap: var(--space-8);">
+        <div>
+          <h3 class="job-title">${job.title}</h3>
+          <div class="job-company">${job.company}</div>
+        </div>
+        ${scoreBadgeHtml}
       </div>
       
       <div class="job-meta">
@@ -73,12 +247,17 @@ function renderJobCard(job, isSaved) {
 }
 
 function handleFilters() {
+  const prefs = getPreferences();
+
   const q = document.getElementById('filter-keyword').value.toLowerCase();
   const loc = document.getElementById('filter-location').value;
   const mode = document.getElementById('filter-mode').value;
   const exp = document.getElementById('filter-exp').value;
   const src = document.getElementById('filter-source').value;
   const sort = document.getElementById('filter-sort').value;
+
+  const matchesOnlyObj = document.getElementById('filter-matches-only');
+  const showMatchesOnly = matchesOnlyObj ? matchesOnlyObj.checked : false;
 
   currentJobs = jobData.filter(job => {
     const matchKeyword = job.title.toLowerCase().includes(q) || job.company.toLowerCase().includes(q);
@@ -87,13 +266,30 @@ function handleFilters() {
     const matchExp = exp === '' || job.experience === exp;
     const matchSrc = src === '' || job.source === src;
 
-    return matchKeyword && matchLoc && matchMode && matchExp && matchSrc;
+    let matchThreshold = true;
+    if (showMatchesOnly && prefs) {
+      matchThreshold = job.matchScore >= (prefs.minMatchScore || 40);
+    }
+
+    return matchKeyword && matchLoc && matchMode && matchExp && matchSrc && matchThreshold;
   });
 
   if (sort === 'latest') {
     currentJobs.sort((a, b) => a.postedDaysAgo - b.postedDaysAgo);
-  } else if (sort === 'oldest') {
-    currentJobs.sort((a, b) => b.postedDaysAgo - a.postedDaysAgo);
+  } else if (sort === 'score' && prefs) {
+    currentJobs.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+  } else if (sort === 'salary') {
+    const extract = (str) => {
+      let val = 0;
+      const match = str.match(/(\d+)/);
+      if (match) {
+        val = parseInt(match[1]);
+        if (str.toLowerCase().includes('lpa')) val *= 100000;
+        if (str.toLowerCase().includes('k')) val *= 1000;
+      }
+      return val;
+    };
+    currentJobs.sort((a, b) => extract(b.salaryRange) - extract(a.salaryRange));
   }
 
   renderJobList();
@@ -106,8 +302,8 @@ function renderJobList() {
   if (currentJobs.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <h3>No Mathing Jobs</h3>
-        <p>No jobs match your search. Try adjusting the filters.</p>
+        <h3>No Roles Match Your Criteria</h3>
+        <p>Adjust your filters, lower your threshold, or update your preferences.</p>
       </div>`;
   } else {
     container.innerHTML = `
@@ -119,8 +315,34 @@ function renderJobList() {
 }
 
 function renderDashboard(route) {
-  // Reset filtering data
+  const prefs = getPreferences();
+
+  if (prefs) {
+    jobData.forEach(job => {
+      job.matchScore = calculateScore(job, prefs);
+    });
+  }
+
   currentJobs = [...jobData];
+
+  let bannerHtml = '';
+  if (!prefs) {
+    bannerHtml = `
+      <div class="banner">
+        Set your preferences in Settings to activate intelligent matching.
+      </div>
+    `;
+  }
+
+  let toggleHtml = '';
+  if (prefs) {
+    toggleHtml = `
+      <div style="display: flex; align-items: center; gap: var(--space-8); margin-bottom: var(--space-16);">
+        <input type="checkbox" id="filter-matches-only" style="width:16px; height:16px; cursor:pointer;">
+        <label for="filter-matches-only" style="font-weight: 500; cursor:pointer;">Show only jobs above my match threshold (${prefs.minMatchScore})</label>
+      </div>
+    `;
+  }
 
   appRoot.innerHTML = `
     <div class="text-container">
@@ -128,7 +350,9 @@ function renderDashboard(route) {
       <p>Discover realistic job opportunities tailored to your preferences.</p>
     </div>
 
-    <!-- Filter Bar -->
+    ${bannerHtml}
+    ${toggleHtml}
+
     <div class="filter-bar">
       <div class="filter-group" style="flex: 2;">
         <label class="filter-label">Search</label>
@@ -180,7 +404,8 @@ function renderDashboard(route) {
         <label class="filter-label">Sort</label>
         <select id="filter-sort" class="filter-select">
           <option value="latest">Latest First</option>
-          <option value="oldest">Oldest First</option>
+          <option value="score">Match Score</option>
+          <option value="salary">Salary (High to Low)</option>
         </select>
       </div>
     </div>
@@ -188,20 +413,29 @@ function renderDashboard(route) {
     <div id="jobs-container"></div>
   `;
 
-  // Attach filter event listeners
   document.getElementById('filter-keyword').addEventListener('input', handleFilters);
   document.getElementById('filter-location').addEventListener('change', handleFilters);
   document.getElementById('filter-mode').addEventListener('change', handleFilters);
   document.getElementById('filter-exp').addEventListener('change', handleFilters);
   document.getElementById('filter-source').addEventListener('change', handleFilters);
   document.getElementById('filter-sort').addEventListener('change', handleFilters);
+  if (prefs) {
+    document.getElementById('filter-matches-only').addEventListener('change', handleFilters);
+  }
 
-  renderJobList();
+  handleFilters();
 }
 
 function renderSaved(route) {
   const savedIds = getSavedJobIds();
   const savedJobs = jobData.filter(j => savedIds.includes(j.id));
+
+  const prefs = getPreferences();
+  if (prefs) {
+    savedJobs.forEach(job => {
+      job.matchScore = calculateScore(job, prefs);
+    });
+  }
 
   appRoot.innerHTML = `
     <div class="text-container">
@@ -228,11 +462,9 @@ function renderSaved(route) {
   }
 }
 
-// Core router logic
 function renderPage(path) {
   let routeParams = routes[path];
 
-  // Implicitly handle unknown routes to 404 setup
   if (!routeParams) {
     appRoot.innerHTML = `
         <div class="text-container">
@@ -247,7 +479,6 @@ function renderPage(path) {
   updateActiveLink(path);
 }
 
-// Active navigation handler
 function updateActiveLink(path) {
   navLinks.forEach(link => {
     link.classList.remove('active');
@@ -263,7 +494,6 @@ function navigateTo(url) {
   renderPage(location.pathname);
 }
 
-// Modal handling logic
 function openModal(id) {
   const job = jobData.find(j => j.id === id);
   if (!job) return;
@@ -304,9 +534,7 @@ function closeModal() {
   jobModal.classList.remove('open');
 }
 
-// Global Event Delegation for Dynamic Elements
 document.addEventListener('click', e => {
-  // Navigation intercepter
   if (e.target.matches('[data-route]')) {
     e.preventDefault();
     const url = e.target.getAttribute('href');
@@ -314,41 +542,34 @@ document.addEventListener('click', e => {
     navMenu.classList.remove('open');
   }
 
-  // Job Action: View
   if (e.target.matches('.action-view')) {
     const id = e.target.getAttribute('data-id');
     openModal(id);
   }
 
-  // Job Action: Save
   if (e.target.matches('.action-save')) {
     const id = e.target.getAttribute('data-id');
     toggleSaveJob(id);
 
-    // If modal is open, re-render it to update the button status inside modal as well
     if (jobModal.classList.contains('open')) {
       openModal(id);
     }
   }
 });
 
-// Modal close events
 modalCloseBtn.addEventListener('click', closeModal);
 jobModal.addEventListener('click', e => {
   if (e.target === jobModal) closeModal();
 });
 
-// React to browser Forward/Back buttons
 window.addEventListener('popstate', () => {
   renderPage(location.pathname);
 });
 
-// Mobile menu toggle
 menuToggle.addEventListener('click', () => {
   navMenu.classList.toggle('open');
 });
 
-// Execute initial load
 document.addEventListener('DOMContentLoaded', () => {
   renderPage(location.pathname);
 });

@@ -381,3 +381,106 @@ p {
         min-width: 100%;
     }
 }
+
+/* Settings, Forms and Banners */
+.card {
+    background-color: var(--bg);
+    border: var(--border);
+    border-radius: var(--radius);
+    padding: var(--space-40);
+}
+
+.form-group {
+    margin-bottom: var(--space-24);
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: var(--space-8);
+    font-size: 16px;
+}
+
+.form-control {
+    width: 100%;
+    padding: var(--space-16);
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--text);
+    background-color: var(--bg);
+    border: var(--border);
+    border-radius: var(--radius);
+    transition: all 150ms ease-in-out;
+    outline: none;
+}
+
+.form-control:focus {
+    border-color: var(--text);
+}
+
+.checkbox-group {
+    display: flex;
+    gap: var(--space-16);
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: var(--space-8);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    font-size: 16px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+input[type=range] {
+    width: 100%;
+    margin-top: var(--space-8);
+    cursor: pointer;
+}
+
+.banner {
+    background-color: rgba(210, 180, 140, 0.1);
+    border: 1px solid #DEB887;
+    color: #B5651D;
+    padding: var(--space-16);
+    border-radius: var(--radius);
+    margin-bottom: var(--space-24);
+    font-weight: 500;
+}
+
+/* Match Score Badges logic */
+.score-badge {
+    padding: 4px var(--space-8);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+}
+
+.score-high {
+    background-color: rgba(107, 142, 35, 0.1);
+    color: #4A6319;
+    border: 1px solid #8FBC8F;
+}
+
+.score-medium {
+    background-color: rgba(210, 180, 140, 0.1);
+    color: #B5651D;
+    border: 1px solid #DEB887;
+}
+
+.score-low {
+    background-color: rgba(17, 17, 17, 0.05);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+.score-poor {
+    background-color: transparent;
+    color: rgba(17, 17, 17, 0.4);
+    border: 1px solid rgba(17, 17, 17, 0.1);
+}
