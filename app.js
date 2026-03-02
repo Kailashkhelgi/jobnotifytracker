@@ -2,7 +2,7 @@ const routes = {
   '/': { title: 'Dashboard', render: renderDashboard },
   '/dashboard': { title: 'Dashboard', render: renderDashboard },
   '/saved': { title: 'Saved', render: renderSaved },
-  '/digest': { title: 'Digest', render: renderPlaceholder },
+  '/digest': { title: 'Digest', render: renderDigest },
   '/settings': { title: 'Settings', render: renderSettings },
   '/proof': { title: 'Proof', render: renderPlaceholder }
 };
@@ -91,6 +91,133 @@ function renderPlaceholder(route) {
   `;
 }
 
+function renderDigest(route) {
+  const prefs = getPreferences();
+  if (!prefs) {
+    appRoot.innerHTML = `
+      <div class="text-container">
+        <h1>${route.title}</h1>
+        <div class="banner" style="margin-top: var(--space-24);">Set preferences to generate a personalized digest.</div>
+      </div>
+    `;
+    return;
+  }
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const digestKey = \`jobTrackerDigest_\${todayStr}\`;
+  
+  const buildUI = () => {
+    let digestJobs = JSON.parse(localStorage.getItem(digestKey));
+
+    if (!digestJobs) {
+      appRoot.innerHTML = `
+    < div class="text-container" >
+          <h1>${route.title}</h1>
+          <p style="margin: 0;">Demo Mode: Daily 9AM trigger simulated manually.</p>
+          <button id="generate-digest-btn" class="btn btn-primary" style="margin-top: var(--space-24);">Generate Today's 9AM Digest (Simulated)</button>
+        </div >
+    `;
+      document.getElementById('generate-digest-btn').addEventListener('click', () => {
+        jobData.forEach(job => {
+          job.matchScore = calculateScore(job, prefs);
+        });
+        
+        let potentialJobs = jobData.filter(j => j.matchScore >= (prefs.minMatchScore || 40));
+        potentialJobs.sort((a, b) => {
+          if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+          return a.postedDaysAgo - b.postedDaysAgo;
+        });
+
+        const top10 = potentialJobs.slice(0, 10);
+        localStorage.setItem(digestKey, JSON.stringify(top10));
+        buildUI();
+      });
+      return;
+    }
+
+    if (digestJobs.length === 0) {
+      appRoot.innerHTML = `
+    < div class="text-container" >
+          <h1>${route.title}</h1>
+          <div class="empty-state" style="margin-top: var(--space-24);">
+            <h3>No Matches Today</h3>
+            <p>No matching roles today. Check again tomorrow.</p>
+          </div>
+        </div >
+    `;
+      return;
+    }
+
+    const emailDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+    let html = `
+    < div class="text-container" style = "max-width: 100%;" >
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; max-width: 720px; flex-wrap: wrap; gap: var(--space-16);">
+          <div>
+            <h1>${route.title}</h1>
+            <p style="margin:0; font-size: 14px;">Demo Mode: Daily 9AM trigger simulated manually.</p>
+          </div>
+          <div style="display: flex; gap: var(--space-16);">
+            <button id="copy-digest-btn" class="btn btn-secondary" style="height: 40px; font-size: 14px;">Copy Digest to Clipboard</button>
+            <button id="email-draft-btn" class="btn btn-primary" style="height: 40px; font-size: 14px;">Create Email Draft</button>
+          </div>
+        </div>
+        <div id="copy-msg" style="color: var(--success); font-weight: 500; display: none; margin-top: var(--space-8); max-width: 720px; text-align: right;">Copied to clipboard!</div>
+
+        <div class="digest-email-wrapper" style="margin-top: var(--space-40);">
+          <div class="digest-header">
+            <h2 style="margin-bottom: var(--space-8);">Top 10 Jobs For You — 9AM Digest</h2>
+            <p style="margin-bottom: 0; color: var(--text-muted);">${emailDate}</p>
+          </div>
+          
+          <div class="digest-body">
+            ${digestJobs.map((job, idx) => `
+              <div class="digest-job">
+                <div class="digest-job-number">${idx + 1}</div>
+                <div style="flex: 1;">
+                  <h3 style="margin-bottom: var(--space-8); font-size: 20px;">${job.title}</h3>
+                  <div style="font-weight: 600; color: var(--text-muted); margin-bottom: var(--space-8);">${job.company}</div>
+                  <div style="display: flex; flex-wrap: wrap; gap: var(--space-16); font-size: 14px; color: var(--text-muted); margin-bottom: var(--space-16);">
+                    <span>📍 ${job.location}</span>
+                    <span>💼 ${job.experience}</span>
+                    <span style="color: var(--success); font-weight: 600;">Match: ${job.matchScore}%</span>
+                  </div>
+                  <a href="${job.applyUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="height: 40px; font-size: 14px; display: inline-flex;">Apply Now</a>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="digest-footer">
+            <p style="margin-bottom: 0;">This digest was generated based on your preferences.</p>
+          </div>
+        </div>
+      </div >
+    `;
+
+    appRoot.innerHTML = html;
+
+    const plaintextDigest = digestJobs.map((j, i) => `${ i + 1 }. ${ j.title } at ${ j.company } \nLocation: ${ j.location } | Match: ${ j.matchScore }%\nApply: ${ j.applyUrl } `).join('\n\n');
+    const emailBody = `Here is your 9AM Job Digest for ${ emailDate }: \n\n` + plaintextDigest + '\n\nThis digest was generated based on your preferences.';
+    
+    document.getElementById('copy-digest-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(emailBody).then(() => {
+        const msg = document.getElementById('copy-msg');
+        msg.style.display = 'block';
+        setTimeout(() => msg.style.display = 'none', 3000);
+      }).catch(e => {
+        alert("Clipboard copy failed, please copy manually.");
+      });
+    });
+
+    document.getElementById('email-draft-btn').addEventListener('click', () => {
+      window.location.href = `mailto:? subject = My 9AM Job Digest & body=${ encodeURIComponent(emailBody) } `;
+    });
+  };
+
+  buildUI();
+}
+
 function renderSettings(route) {
   const prefs = getPreferences() || {
     roleKeywords: '',
@@ -106,7 +233,7 @@ function renderSettings(route) {
   const isExpSel = (exp) => prefs.experienceLevel === exp ? 'selected' : '';
 
   appRoot.innerHTML = `
-    <div class="text-container">
+    < div class="text-container" >
       <h1>${route.title}</h1>
       <p>Set your preferences to activate intelligent matching.</p>
       
@@ -173,8 +300,8 @@ function renderSettings(route) {
           </div>
         </form>
       </div>
-    </div>
-  `;
+    </div >
+    `;
 
   document.getElementById('preferences-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -216,11 +343,11 @@ function renderJobCard(job, isSaved) {
     else if (score >= 60) scoreClass = 'score-medium';
     else if (score >= 40) scoreClass = 'score-low';
 
-    scoreBadgeHtml = `<div class="score-badge ${scoreClass}">Match: ${score}%</div>`;
+    scoreBadgeHtml = `< div class="score-badge ${scoreClass}" > Match: ${ score }%</div > `;
   }
 
   return `
-    <div class="job-card">
+    < div class="job-card" >
       <div class="job-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap: var(--space-8);">
         <div>
           <h3 class="job-title">${job.title}</h3>
@@ -242,8 +369,8 @@ function renderJobCard(job, isSaved) {
         <button class="btn btn-secondary action-save" data-id="${job.id}">${isSaved ? 'Unsave' : 'Save'}</button>
         <a href="${job.applyUrl}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">Apply</a>
       </div>
-    </div>
-  `;
+    </div >
+    `;
 }
 
 function handleFilters() {
@@ -301,15 +428,15 @@ function renderJobList() {
 
   if (currentJobs.length === 0) {
     container.innerHTML = `
-      <div class="empty-state">
+    < div class="empty-state" >
         <h3>No Roles Match Your Criteria</h3>
         <p>Adjust your filters, lower your threshold, or update your preferences.</p>
-      </div>`;
+      </div > `;
   } else {
     container.innerHTML = `
-      <div class="jobs-grid">
-        ${currentJobs.map(job => renderJobCard(job, savedIds.includes(job.id))).join('')}
-      </div>
+    < div class="jobs-grid" >
+      ${ currentJobs.map(job => renderJobCard(job, savedIds.includes(job.id))).join('') }
+      </div >
     `;
   }
 }
@@ -328,30 +455,30 @@ function renderDashboard(route) {
   let bannerHtml = '';
   if (!prefs) {
     bannerHtml = `
-      <div class="banner">
-        Set your preferences in Settings to activate intelligent matching.
-      </div>
+    < div class="banner" >
+      Set your preferences in Settings to activate intelligent matching.
+      </div >
     `;
   }
 
   let toggleHtml = '';
   if (prefs) {
     toggleHtml = `
-      <div style="display: flex; align-items: center; gap: var(--space-8); margin-bottom: var(--space-16);">
-        <input type="checkbox" id="filter-matches-only" style="width:16px; height:16px; cursor:pointer;">
+    < div style = "display: flex; align-items: center; gap: var(--space-8); margin-bottom: var(--space-16);" >
+      <input type="checkbox" id="filter-matches-only" style="width:16px; height:16px; cursor:pointer;">
         <label for="filter-matches-only" style="font-weight: 500; cursor:pointer;">Show only jobs above my match threshold (${prefs.minMatchScore})</label>
       </div>
-    `;
+  `;
   }
 
   appRoot.innerHTML = `
-    <div class="text-container">
+    < div class="text-container" >
       <h1>${route.title}</h1>
       <p>Discover realistic job opportunities tailored to your preferences.</p>
-    </div>
+    </div >
 
-    ${bannerHtml}
-    ${toggleHtml}
+    ${ bannerHtml }
+    ${ toggleHtml }
 
     <div class="filter-bar">
       <div class="filter-group" style="flex: 2;">
@@ -438,10 +565,10 @@ function renderSaved(route) {
   }
 
   appRoot.innerHTML = `
-    <div class="text-container">
+    < div class="text-container" >
       <h1>${route.title}</h1>
       <p>Review and act continuously on your manually saved opportunities.</p>
-    </div>
+    </div >
     <div id="jobs-container"></div>
   `;
 
@@ -449,15 +576,15 @@ function renderSaved(route) {
 
   if (savedJobs.length === 0) {
     container.innerHTML = `
-      <div class="empty-state">
+    < div class="empty-state" >
         <h3>No Saved Jobs</h3>
         <p>You haven't saved any opportunities yet. Explore the Dashboard to get started.</p>
-      </div>`;
+      </div > `;
   } else {
     container.innerHTML = `
-      <div class="jobs-grid">
-        ${savedJobs.map(job => renderJobCard(job, true)).join('')}
-      </div>
+    < div class="jobs-grid" >
+      ${ savedJobs.map(job => renderJobCard(job, true)).join('') }
+      </div >
     `;
   }
 }
@@ -467,10 +594,10 @@ function renderPage(path) {
 
   if (!routeParams) {
     appRoot.innerHTML = `
-        <div class="text-container">
+    < div class="text-container" >
         <h1>Page Not Found</h1>
         <p>The page you are looking for does not exist.</p>
-        </div>
+        </div >
     `;
   } else {
     routeParams.render(routeParams);
@@ -502,7 +629,7 @@ function openModal(id) {
   const isSaved = savedIds.includes(job.id);
 
   modalDetails.innerHTML = `
-    <h2 style="margin-bottom: var(--space-8); line-height: 1.2;">${job.title}</h2>
+    < h2 style = "margin-bottom: var(--space-8); line-height: 1.2;" > ${ job.title }</h2 >
     <div style="font-weight: 600; font-size: 18px; color: var(--text-muted); margin-bottom: var(--space-24);">${job.company}</div>
     
     <div class="job-meta">
