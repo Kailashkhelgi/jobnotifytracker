@@ -104,24 +104,24 @@ function renderDigest(route) {
   }
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const digestKey = \`jobTrackerDigest_\${todayStr}\`;
-  
+  const digestKey = `jobTrackerDigest_${todayStr}`;
+
   const buildUI = () => {
     let digestJobs = JSON.parse(localStorage.getItem(digestKey));
 
     if (!digestJobs) {
       appRoot.innerHTML = `
-    < div class="text-container" >
+        <div class="text-container">
           <h1>${route.title}</h1>
           <p style="margin: 0;">Demo Mode: Daily 9AM trigger simulated manually.</p>
           <button id="generate-digest-btn" class="btn btn-primary" style="margin-top: var(--space-24);">Generate Today's 9AM Digest (Simulated)</button>
-        </div >
-    `;
+        </div>
+      `;
       document.getElementById('generate-digest-btn').addEventListener('click', () => {
         jobData.forEach(job => {
           job.matchScore = calculateScore(job, prefs);
         });
-        
+
         let potentialJobs = jobData.filter(j => j.matchScore >= (prefs.minMatchScore || 40));
         potentialJobs.sort((a, b) => {
           if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
@@ -137,21 +137,21 @@ function renderDigest(route) {
 
     if (digestJobs.length === 0) {
       appRoot.innerHTML = `
-    < div class="text-container" >
+        <div class="text-container">
           <h1>${route.title}</h1>
           <div class="empty-state" style="margin-top: var(--space-24);">
             <h3>No Matches Today</h3>
             <p>No matching roles today. Check again tomorrow.</p>
           </div>
-        </div >
-    `;
+        </div>
+      `;
       return;
     }
 
     const emailDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
     let html = `
-    < div class="text-container" style = "max-width: 100%;" >
+      <div class="text-container" style="max-width: 100%;">
         <div style="display:flex; justify-content:space-between; align-items:flex-end; max-width: 720px; flex-wrap: wrap; gap: var(--space-16);">
           <div>
             <h1>${route.title}</h1>
@@ -192,14 +192,14 @@ function renderDigest(route) {
             <p style="margin-bottom: 0;">This digest was generated based on your preferences.</p>
           </div>
         </div>
-      </div >
+      </div>
     `;
 
     appRoot.innerHTML = html;
 
-    const plaintextDigest = digestJobs.map((j, i) => `${ i + 1 }. ${ j.title } at ${ j.company } \nLocation: ${ j.location } | Match: ${ j.matchScore }%\nApply: ${ j.applyUrl } `).join('\n\n');
-    const emailBody = `Here is your 9AM Job Digest for ${ emailDate }: \n\n` + plaintextDigest + '\n\nThis digest was generated based on your preferences.';
-    
+    const plaintextDigest = digestJobs.map((j, i) => `${i + 1}. ${j.title} at ${j.company}\nLocation: ${j.location} | Match: ${j.matchScore}%\nApply: ${j.applyUrl}`).join('\n\n');
+    const emailBody = `Here is your 9AM Job Digest for ${emailDate}:\n\n` + plaintextDigest + '\n\nThis digest was generated based on your preferences.';
+
     document.getElementById('copy-digest-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(emailBody).then(() => {
         const msg = document.getElementById('copy-msg');
@@ -211,7 +211,7 @@ function renderDigest(route) {
     });
 
     document.getElementById('email-draft-btn').addEventListener('click', () => {
-      window.location.href = `mailto:? subject = My 9AM Job Digest & body=${ encodeURIComponent(emailBody) } `;
+      window.location.href = `mailto:?subject=My 9AM Job Digest&body=${encodeURIComponent(emailBody)}`;
     });
   };
 
@@ -343,7 +343,7 @@ function renderJobCard(job, isSaved) {
     else if (score >= 60) scoreClass = 'score-medium';
     else if (score >= 40) scoreClass = 'score-low';
 
-    scoreBadgeHtml = `< div class="score-badge ${scoreClass}" > Match: ${ score }%</div > `;
+    scoreBadgeHtml = `< div class="score-badge ${scoreClass}" > Match: ${score}%</div > `;
   }
 
   return `
@@ -435,7 +435,7 @@ function renderJobList() {
   } else {
     container.innerHTML = `
     < div class="jobs-grid" >
-      ${ currentJobs.map(job => renderJobCard(job, savedIds.includes(job.id))).join('') }
+      ${currentJobs.map(job => renderJobCard(job, savedIds.includes(job.id))).join('')}
       </div >
     `;
   }
@@ -477,8 +477,8 @@ function renderDashboard(route) {
       <p>Discover realistic job opportunities tailored to your preferences.</p>
     </div >
 
-    ${ bannerHtml }
-    ${ toggleHtml }
+    ${bannerHtml}
+    ${toggleHtml}
 
     <div class="filter-bar">
       <div class="filter-group" style="flex: 2;">
@@ -583,7 +583,7 @@ function renderSaved(route) {
   } else {
     container.innerHTML = `
     < div class="jobs-grid" >
-      ${ savedJobs.map(job => renderJobCard(job, true)).join('') }
+      ${savedJobs.map(job => renderJobCard(job, true)).join('')}
       </div >
     `;
   }
@@ -629,7 +629,7 @@ function openModal(id) {
   const isSaved = savedIds.includes(job.id);
 
   modalDetails.innerHTML = `
-    < h2 style = "margin-bottom: var(--space-8); line-height: 1.2;" > ${ job.title }</h2 >
+    < h2 style = "margin-bottom: var(--space-8); line-height: 1.2;" > ${job.title}</h2 >
     <div style="font-weight: 600; font-size: 18px; color: var(--text-muted); margin-bottom: var(--space-24);">${job.company}</div>
     
     <div class="job-meta">

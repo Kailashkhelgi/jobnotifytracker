@@ -484,3 +484,56 @@ input[type=range] {
     color: rgba(17, 17, 17, 0.4);
     border: 1px solid rgba(17, 17, 17, 0.1);
 }
+
+/* Digest Email Layout */
+.digest-email-wrapper {
+    background-color: var(--bg);
+    border: var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    max-width: 720px;
+}
+
+.digest-header {
+    background-color: var(--bg);
+    padding: var(--space-40) var(--space-40) var(--space-24);
+    border-bottom: var(--border);
+    text-align: center;
+}
+
+.digest-body {
+    padding: var(--space-40);
+    background-color: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-40);
+}
+
+.digest-job {
+    display: flex;
+    gap: var(--space-24);
+    padding-bottom: var(--space-40);
+    border-bottom: var(--border);
+}
+
+.digest-job:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.digest-job-number {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-muted);
+    width: var(--space-40);
+}
+
+.digest-footer {
+    text-align: center;
+    padding: var(--space-24);
+    background-color: var(--bg);
+    border-top: var(--border);
+    font-size: 14px;
+    color: var(--text-muted);
+}
