@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design System - Job Notification App</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- TOP BAR -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        Job Notification App
+      </div>
+      <div class="top-bar-center">
+        Step 1 / 4
+      </div>
+      <div class="top-bar-right">
+        <!-- Example badges -->
+        <div class="badge not-started">Not Started</div>
+        <!-- 
+        <div class="badge in-progress">In Progress</div>
+        <div class="badge shipped">Shipped</div>
+        -->
+      </div>
+    </header>
+
+    <!-- CONTEXT HEADER -->
+    <section class="context-header">
+      <h1>Define Target Companies</h1>
+      <p>Specify the organizations you want to monitor for new career opportunities to set up targeted alerts.</p>
+    </section>
+
+    <!-- MAIN GRID -->
+    <main class="main-content">
+      
+      <!-- PRIMARY WORKSPACE (70%) -->
+      <section class="primary-workspace">
+        
+        <!-- Error State Example -->
+        <div class="state-alert error">
+          <h4>Invalid Configuration</h4>
+          <p>The company URL you entered is unreachable. Please verify the URL and try saving again.</p>
+        </div>
+
+        <div class="card">
+          <h2>Add New Target</h2>
+          <p>Provide the basic details of the company to start tracking.</p>
+          
+          <div class="form-group">
+            <label class="form-label">Company Name</label>
+            <input type="text" class="form-control" placeholder="e.g. Acme Corp">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Careers Page URL</label>
+            <input type="text" class="form-control" placeholder="https://...">
+          </div>
+          
+          <div style="display: flex; gap: var(--space-16); margin-top: var(--space-40);">
+            <button class="btn btn-primary">Save Target</button>
+            <button class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Empty State Example -->
+        <div class="empty-state">
+          <h3>No Active Monitors</h3>
+          <p>You haven't added any companies to track yet. Get started by adding your first target company above.</p>
+          <button class="btn btn-secondary">Read Documentation</button>
+        </div>
+
+      </section>
+
+      <!-- SECONDARY PANEL (30%) -->
+      <aside class="secondary-panel">
+        <div class="explanation">
+          <h4>Why Target Companies?</h4>
+          <p>By focusing on specific organizations, your notifications remain highly relevant. Limit your list to 20 for optimal focus and signal filtering.</p>
+        </div>
+
+        <div class="prompt-box">
+          <div class="prompt-box-header">
+            <span class="prompt-box-title">System Prompt Preview</span>
+            <button class="btn-copy">Copy</button>
+          </div>
+          <div style="font-family: inherit;">Monitor the provided URL on a daily basis. Alert me strictly when a new role containing "Engineer" or "Developer" is posted. Format the output cleanly.</div>
+        </div>
+      </aside>
+
+    </main>
+
+    <!-- PROOF FOOTER -->
+    <footer class="proof-footer">
+      <ul class="checklist">
+        <li class="checklist-item checked">
+          <div class="checkbox-visual"></div>
+          UI Built
+        </li>
+        <li class="checklist-item">
+          <div class="checkbox-visual"></div>
+          Logic Working
+        </li>
+        <li class="checklist-item">
+          <div class="checkbox-visual"></div>
+          Test Passed
+        </li>
+        <li class="checklist-item">
+          <div class="checkbox-visual"></div>
+          Deployed
+        </li>
+      </ul>
+    </footer>
+
+  </div>
+
+</body>
+</html>
