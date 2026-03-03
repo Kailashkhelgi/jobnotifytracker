@@ -4,7 +4,9 @@ const routes = {
   '/saved': { title: 'Saved', render: renderSaved },
   '/digest': { title: 'Digest', render: renderDigest },
   '/settings': { title: 'Settings', render: renderSettings },
-  '/proof': { title: 'Proof', render: renderPlaceholder }
+  '/proof': { title: 'Proof', render: renderPlaceholder },
+  '/jt/07-test': { title: 'Test Checklist', render: renderTestChecklist },
+  '/jt/08-ship': { title: 'Ship', render: renderShip }
 };
 
 const appRoot = document.getElementById('app-root');
@@ -53,11 +55,11 @@ function calculateScore(job, prefs) {
     if (keywords.some(k => desc.includes(k))) score += 15;
   }
 
-  if (prefs.preferredLocations && prefs.preferredLocations.length> 0) {
+  if (prefs.preferredLocations && prefs.preferredLocations.length > 0) {
     if (prefs.preferredLocations.includes(job.location)) score += 15;
   }
 
-  if (prefs.preferredMode && prefs.preferredMode.length> 0) {
+  if (prefs.preferredMode && prefs.preferredMode.length > 0) {
     if (prefs.preferredMode.includes(job.mode)) score += 10;
   }
 
@@ -122,7 +124,7 @@ function renderDigest(route) {
           job.matchScore = calculateScore(job, prefs);
         });
 
-        let potentialJobs = jobData.filter(j => j.matchScore>= (prefs.minMatchScore || 40));
+        let potentialJobs = jobData.filter(j => j.matchScore >= (prefs.minMatchScore || 40));
         potentialJobs.sort((a, b) => {
           if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
           return a.postedDaysAgo - b.postedDaysAgo;
@@ -339,9 +341,9 @@ function renderJobCard(job, isSaved) {
   if (prefs) {
     const score = job.matchScore !== undefined ? job.matchScore : calculateScore(job, prefs);
     let scoreClass = 'score-poor';
-    if (score>= 80) scoreClass = 'score-high';
-    else if (score>= 60) scoreClass = 'score-medium';
-    else if (score>= 40) scoreClass = 'score-low';
+    if (score >= 80) scoreClass = 'score-high';
+    else if (score >= 60) scoreClass = 'score-medium';
+    else if (score >= 40) scoreClass = 'score-low';
 
     scoreBadgeHtml = `<div class="score-badge ${scoreClass}"> Match: ${score}%</div> `;
   }
@@ -395,7 +397,7 @@ function handleFilters() {
 
     let matchThreshold = true;
     if (showMatchesOnly && prefs) {
-      matchThreshold = job.matchScore>= (prefs.minMatchScore || 40);
+      matchThreshold = job.matchScore >= (prefs.minMatchScore || 40);
     }
 
     return matchKeyword && matchLoc && matchMode && matchExp && matchSrc && matchThreshold;
@@ -655,6 +657,124 @@ function openModal(id) {
     </div>
   `;
   jobModal.classList.add('open');
+}
+
+const testChecklistItems = [
+  { id: 'test-1', label: 'Preferences persist after refresh', tooltip: 'How to test: Change settings, refresh the page, check if settings are kept.' },
+  { id: 'test-2', label: 'Match score calculates correctly', tooltip: 'How to test: Compare job score with manual calculation.' },
+  { id: 'test-3', label: '"Show only matches" toggle works', tooltip: 'How to test: Toggle the filter and verify jobs below threshold are hidden.' },
+  { id: 'test-4', label: 'Save job persists after refresh', tooltip: 'How to test: Save a job, refresh, check if it remains saved.' },
+  { id: 'test-5', label: 'Apply opens in new tab', tooltip: 'How to test: Click apply, ensure it opens in a new tab.' },
+  { id: 'test-6', label: 'Status update persists after refresh', tooltip: 'How to test: Change a job status, refresh, and check.' },
+  { id: 'test-7', label: 'Status filter works correctly', tooltip: 'How to test: Apply status filter, see if only matched statuses appear.' },
+  { id: 'test-8', label: 'Digest generates top 10 by score', tooltip: 'How to test: Check the digest page for correct ordering.' },
+  { id: 'test-9', label: 'Digest persists for the day', tooltip: 'How to test: Generate digest, refresh, and verify it still exists.' },
+  { id: 'test-10', label: 'No console errors on main pages', tooltip: 'How to test: Open console and browse around.' }
+];
+
+function getTestChecklistState() {
+  try {
+    return JSON.parse(localStorage.getItem('jobTrackerTestStatus') || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+function setTestChecklistState(state) {
+  localStorage.setItem('jobTrackerTestStatus', JSON.stringify(state));
+}
+
+function renderTestChecklist(route) {
+  appRoot.innerHTML = `
+    <div class="text-container">
+      <h1>${route.title}</h1>
+      <div id="test-summary" style="margin-bottom: var(--space-16); font-size: 18px; font-weight: 600;"></div>
+      <div id="test-warning" style="color: var(--accent); margin-bottom: var(--space-24); font-weight: 500; display: none;">Resolve all issues before shipping.</div>
+      
+      <div class="card" style="margin-bottom: var(--space-24);">
+        <form id="checklist-form">
+          <div style="display: flex; flex-direction: column; gap: var(--space-16);">
+            ${testChecklistItems.map(item => `
+              <label class="checkbox-label" style="align-items: flex-start;" title="${item.tooltip}">
+                <input type="checkbox" name="test-item" value="${item.id}" style="margin-top: 4px; cursor: pointer; height: 16px; width: 16px;">
+                <span style="display: flex; flex-direction: column; cursor: pointer;">
+                  <span style="font-weight: 500;">${item.label}</span>
+                  <span style="font-size: 12px; color: var(--text-muted);">${item.tooltip}</span>
+                </span>
+              </label>
+            `).join('')}
+          </div>
+        </form>
+      </div>
+      <button id="reset-test-btn" class="btn btn-secondary">Reset Test Status</button>
+    </div>
+  `;
+
+  const state = getTestChecklistState();
+  const checkboxes = document.querySelectorAll('input[name="test-item"]');
+  const summary = document.getElementById('test-summary');
+  const warning = document.getElementById('test-warning');
+
+  const updateSummary = () => {
+    let passed = 0;
+    checkboxes.forEach(cb => {
+      if (cb.checked) passed++;
+    });
+    summary.innerText = `Tests Passed: ${passed} / 10`;
+    if (passed < 10) {
+      warning.style.display = 'block';
+    } else {
+      warning.style.display = 'none';
+    }
+  };
+
+  checkboxes.forEach(cb => {
+    cb.checked = !!state[cb.value];
+    cb.addEventListener('change', (e) => {
+      const currentState = getTestChecklistState();
+      currentState[e.target.value] = e.target.checked;
+      setTestChecklistState(currentState);
+      updateSummary();
+    });
+  });
+
+  updateSummary();
+
+  document.getElementById('reset-test-btn').addEventListener('click', () => {
+    setTestChecklistState({});
+    checkboxes.forEach(cb => cb.checked = false);
+    updateSummary();
+  });
+}
+
+function renderShip(route) {
+  const state = getTestChecklistState();
+  let passed = 0;
+  testChecklistItems.forEach(item => {
+    if (state[item.id]) passed++;
+  });
+
+  if (passed < 10) {
+    appRoot.innerHTML = `
+      <div class="text-container">
+        <div class="empty-state" style="border-color: var(--accent);">
+          <h3 style="color: var(--accent);">Complete all tests before shipping.</h3>
+          <p>Please complete 10/10 tests in the Test Checklist to unlock this page.</p>
+          <a href="/jt/07-test" class="btn btn-primary" data-route style="margin-top: var(--space-24);">Go to Checklist</a>
+        </div>
+      </div>
+    `;
+  } else {
+    appRoot.innerHTML = `
+      <div class="text-container">
+        <h1>Ship It!</h1>
+        <div class="card">
+          <h3 style="color: var(--success);">All tests passed! Ready for production.</h3>
+          <p style="margin-bottom: 0;">You have successfully completed all tests. The application is ready to be deployed.</p>
+        </div>
+      </div>
+    `;
+  }
 }
 
 function closeModal() {
