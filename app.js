@@ -53,11 +53,11 @@ function calculateScore(job, prefs) {
     if (keywords.some(k => desc.includes(k))) score += 15;
   }
 
-  if (prefs.preferredLocations && prefs.preferredLocations.length > 0) {
+  if (prefs.preferredLocations && prefs.preferredLocations.length> 0) {
     if (prefs.preferredLocations.includes(job.location)) score += 15;
   }
 
-  if (prefs.preferredMode && prefs.preferredMode.length > 0) {
+  if (prefs.preferredMode && prefs.preferredMode.length> 0) {
     if (prefs.preferredMode.includes(job.mode)) score += 10;
   }
 
@@ -122,7 +122,7 @@ function renderDigest(route) {
           job.matchScore = calculateScore(job, prefs);
         });
 
-        let potentialJobs = jobData.filter(j => j.matchScore >= (prefs.minMatchScore || 40));
+        let potentialJobs = jobData.filter(j => j.matchScore>= (prefs.minMatchScore || 40));
         potentialJobs.sort((a, b) => {
           if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
           return a.postedDaysAgo - b.postedDaysAgo;
@@ -233,7 +233,7 @@ function renderSettings(route) {
   const isExpSel = (exp) => prefs.experienceLevel === exp ? 'selected' : '';
 
   appRoot.innerHTML = `
-    < div class="text-container" >
+    <div class="text-container">
       <h1>${route.title}</h1>
       <p>Set your preferences to activate intelligent matching.</p>
       
@@ -300,7 +300,7 @@ function renderSettings(route) {
           </div>
         </form>
       </div>
-    </div >
+    </div>
     `;
 
   document.getElementById('preferences-form').addEventListener('submit', (e) => {
@@ -339,15 +339,15 @@ function renderJobCard(job, isSaved) {
   if (prefs) {
     const score = job.matchScore !== undefined ? job.matchScore : calculateScore(job, prefs);
     let scoreClass = 'score-poor';
-    if (score >= 80) scoreClass = 'score-high';
-    else if (score >= 60) scoreClass = 'score-medium';
-    else if (score >= 40) scoreClass = 'score-low';
+    if (score>= 80) scoreClass = 'score-high';
+    else if (score>= 60) scoreClass = 'score-medium';
+    else if (score>= 40) scoreClass = 'score-low';
 
-    scoreBadgeHtml = `< div class="score-badge ${scoreClass}" > Match: ${score}%</div > `;
+    scoreBadgeHtml = `<div class="score-badge ${scoreClass}"> Match: ${score}%</div> `;
   }
 
   return `
-    < div class="job-card" >
+    <div class="job-card">
       <div class="job-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap: var(--space-8);">
         <div>
           <h3 class="job-title">${job.title}</h3>
@@ -369,7 +369,7 @@ function renderJobCard(job, isSaved) {
         <button class="btn btn-secondary action-save" data-id="${job.id}">${isSaved ? 'Unsave' : 'Save'}</button>
         <a href="${job.applyUrl}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">Apply</a>
       </div>
-    </div >
+    </div>
     `;
 }
 
@@ -395,7 +395,7 @@ function handleFilters() {
 
     let matchThreshold = true;
     if (showMatchesOnly && prefs) {
-      matchThreshold = job.matchScore >= (prefs.minMatchScore || 40);
+      matchThreshold = job.matchScore>= (prefs.minMatchScore || 40);
     }
 
     return matchKeyword && matchLoc && matchMode && matchExp && matchSrc && matchThreshold;
@@ -428,15 +428,15 @@ function renderJobList() {
 
   if (currentJobs.length === 0) {
     container.innerHTML = `
-    < div class="empty-state" >
+    <div class="empty-state">
         <h3>No Roles Match Your Criteria</h3>
         <p>Adjust your filters, lower your threshold, or update your preferences.</p>
-      </div > `;
+      </div> `;
   } else {
     container.innerHTML = `
-    < div class="jobs-grid" >
+    <div class="jobs-grid">
       ${currentJobs.map(job => renderJobCard(job, savedIds.includes(job.id))).join('')}
-      </div >
+      </div>
     `;
   }
 }
@@ -455,16 +455,16 @@ function renderDashboard(route) {
   let bannerHtml = '';
   if (!prefs) {
     bannerHtml = `
-    < div class="banner" >
+    <div class="banner">
       Set your preferences in Settings to activate intelligent matching.
-      </div >
+      </div>
     `;
   }
 
   let toggleHtml = '';
   if (prefs) {
     toggleHtml = `
-    < div style = "display: flex; align-items: center; gap: var(--space-8); margin-bottom: var(--space-16);" >
+    <div style = "display: flex; align-items: center; gap: var(--space-8); margin-bottom: var(--space-16);">
       <input type="checkbox" id="filter-matches-only" style="width:16px; height:16px; cursor:pointer;">
         <label for="filter-matches-only" style="font-weight: 500; cursor:pointer;">Show only jobs above my match threshold (${prefs.minMatchScore})</label>
       </div>
@@ -472,10 +472,10 @@ function renderDashboard(route) {
   }
 
   appRoot.innerHTML = `
-    < div class="text-container" >
+    <div class="text-container">
       <h1>${route.title}</h1>
       <p>Discover realistic job opportunities tailored to your preferences.</p>
-    </div >
+    </div>
 
     ${bannerHtml}
     ${toggleHtml}
@@ -565,10 +565,10 @@ function renderSaved(route) {
   }
 
   appRoot.innerHTML = `
-    < div class="text-container" >
+    <div class="text-container">
       <h1>${route.title}</h1>
       <p>Review and act continuously on your manually saved opportunities.</p>
-    </div >
+    </div>
     <div id="jobs-container"></div>
   `;
 
@@ -576,15 +576,15 @@ function renderSaved(route) {
 
   if (savedJobs.length === 0) {
     container.innerHTML = `
-    < div class="empty-state" >
+    <div class="empty-state">
         <h3>No Saved Jobs</h3>
         <p>You haven't saved any opportunities yet. Explore the Dashboard to get started.</p>
-      </div > `;
+      </div> `;
   } else {
     container.innerHTML = `
-    < div class="jobs-grid" >
+    <div class="jobs-grid">
       ${savedJobs.map(job => renderJobCard(job, true)).join('')}
-      </div >
+      </div>
     `;
   }
 }
@@ -594,10 +594,10 @@ function renderPage(path) {
 
   if (!routeParams) {
     appRoot.innerHTML = `
-    < div class="text-container" >
+    <div class="text-container">
         <h1>Page Not Found</h1>
         <p>The page you are looking for does not exist.</p>
-        </div >
+        </div>
     `;
   } else {
     routeParams.render(routeParams);
@@ -629,7 +629,7 @@ function openModal(id) {
   const isSaved = savedIds.includes(job.id);
 
   modalDetails.innerHTML = `
-    < h2 style = "margin-bottom: var(--space-8); line-height: 1.2;" > ${job.title}</h2 >
+    <h2 style = "margin-bottom: var(--space-8); line-height: 1.2;"> ${job.title}</h2>
     <div style="font-weight: 600; font-size: 18px; color: var(--text-muted); margin-bottom: var(--space-24);">${job.company}</div>
     
     <div class="job-meta">
